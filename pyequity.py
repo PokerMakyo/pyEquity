@@ -2,9 +2,7 @@
 """
 
 import itertools
-from pokereval import PokerEval
-
-pokereval = PokerEval()
+import pokereval
 
 def make_pair_hands(cards):
     """ Creates hands list from card in '88' like format.
@@ -113,14 +111,14 @@ def hands_from_range(cards_ranges):
         hands += make_hands(fixme)
     return hands
 
-def compute_equity(pockets, game='holdem', dead=[], board=[], iterations=1000):
+
+def compute_equity(pockets, dead=[], board=[], iterations=None):
     """ Compute hands equity.
     """
 
-    players_ev = [0] * len(pockets)
-   
-    pockets = [hands_from_range(p) for p in pockets]
+    pot_wins = [0] * len(pockets)
 
+    pockets = [hands_from_range(p) for p in pockets]
     for pck in itertools.product(*pockets):
         lpck = []                       # F
         for x in pck:                   # I
@@ -128,16 +126,21 @@ def compute_equity(pockets, game='holdem', dead=[], board=[], iterations=1000):
         if len(lpck) != len(set(lpck)): # M
             continue                    # E
 
-        result = pokereval.poker_eval(game = game, pockets = list(pck), dead = dead, fill_pockets=1, iterations=iterations, board=board)
-        for player, eval in enumerate(result['eval']):
-            players_ev[player] += eval['ev']
+        if iterations:
+            result = pe.poker_eval(game='holdem', pockets = list(pck), dead = dead, fill_pockets=1, iterations=iterations, board=board)
+        else:
+            result = pe.poker_eval(game='holdem', pockets = list(pck), dead = dead, fill_pockets=1, board=board)
 
-    ev_sum = sum(players_ev)
+        for player, eval in enumerate(result['eval']):
+            pot_wins[player] += (eval['winhi'] + eval['tiehi'] / 9.0) * result['info'][0]
+
+    pots_wins_sum = sum(pot_wins)
     equity = []
-    for ev in players_ev:
-        equity.append(100.0 * ev / ev_sum)
+    for pots in pot_wins:
+        equity.append(100.0 * pots / pots_wins_sum)
 
     return equity
+
 
 # vim: filetype=python syntax=python expandtab shiftwidth=4 softtabstop=4
 
