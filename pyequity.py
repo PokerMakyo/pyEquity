@@ -9,8 +9,7 @@ def make_pair_hands(cards):
     """
     # '55' -> [['5c', '5s'], ['5c', '5h'], ['5c', '5d'], ['5s', '5c'], ...
     possible_suits = (
-                'cs', 'ch', 'cd', 'sc', 'sh', 'sd',
-                'hc', 'hs', 'hd', 'dc', 'ds', 'dh'
+                'sh', 'sd', 'sc', 'hd', 'hc', 'dc'
             )
     hands = []
     for suits in possible_suits:
@@ -44,9 +43,6 @@ def make_offsuited_hands(cards):
     possible_suits = (
               'cs', 'ch', 'cd', 'sc', 'sh', 'sd',
               'hc', 'hs', 'hd', 'dc', 'ds', 'dh',
-
-              'sc', 'hc', 'dc', 'cs', 'hs', 'ds',
-              'ch', 'sh', 'dh', 'cd', 'sd', 'hd'
             )
     hands = []
     for suits in possible_suits:
@@ -61,7 +57,9 @@ def make_offsuited_hands(cards):
 def make_hands(cards):
     """ Creates hands list from card in '88', 'A8o', 'A8s' like format.
     """
-    if len(cards) == 2:
+    if len(cards) == 4:
+        return [[cards[0:2], cards[2:4]]]
+    elif len(cards) == 2:
         return make_pair_hands(cards)
     elif cards[2] == 's':
         return make_suited_hands(cards)
@@ -96,9 +94,12 @@ def hands_from_range(cards_ranges):
                     cards.append(ranks[rank] * 2)
             else:               # card like 'AKs', 'QKo'
                 cards.append(crange)
-        elif crlen == 4:        # cards range like 'A5s+'
-            for rank in range(ranks.index(crange[1]), len(ranks) - 1):
-                cards.append('%s%s%s' % (crange[0], ranks[rank], crange[2]))
+        elif crlen == 4:
+            if crange[3] == '+':    # cards range like 'A5s+'
+                for rank in range(ranks.index(crange[1]), len(ranks) - 1):
+                    cards.append('%s%s%s' % (crange[0], ranks[rank], crange[2]))
+            else: # KhQc
+                cards.append(crange)
         elif crlen == 5:        # pair range like '66-33'
             for rank in range(ranks.index(crange[3]), ranks.index(crange[0])+1):
                 cards.append(ranks[rank] * 2)
@@ -115,10 +116,15 @@ def hands_from_range(cards_ranges):
 def compute_equity(pockets, dead=[], board=[], iterations=None):
     """ Compute hands equity.
     """
+    pe = pokereval.PokerEval()
 
-    pot_wins = [0] * len(pockets)
-
+    players_ev = [0] * len(pockets)
+    games = 0
     pockets = [hands_from_range(p) for p in pockets]
+
+    hands_variants = 1
+    for p in pockets:
+        hands_variants *= len(p)
     for pck in itertools.product(*pockets):
         lpck = []                       # F
         for x in pck:                   # I
@@ -127,18 +133,21 @@ def compute_equity(pockets, dead=[], board=[], iterations=None):
             continue                    # E
 
         if iterations:
-            result = pe.poker_eval(game='holdem', pockets = list(pck), dead = dead, fill_pockets=1, iterations=iterations, board=board)
+            # FIXME iterations/hands_variants can't be less than 1
+            result = pe.poker_eval(game='holdem', pockets=list(pck), dead=dead, board=board, iterations=int(iterations/hands_variants))
         else:
-            result = pe.poker_eval(game='holdem', pockets = list(pck), dead = dead, fill_pockets=1, board=board)
+            result = pe.poker_eval(game='holdem', pockets=list(pck), dead=dead, board=board)
 
-        for player, eval in enumerate(result['eval']):
-            pot_wins[player] += (eval['winhi'] + eval['tiehi'] / 9.0) * result['info'][0]
+        for player, player_result in enumerate(result['eval']):
+            players_ev[player] += player_result['ev'] * result['info'][0]
 
-    pots_wins_sum = sum(pot_wins)
+        games += result['info'][0]
+
+    players_ev_sum = sum(players_ev)
     equity = []
-    for pots in pot_wins:
-        equity.append(100.0 * pots / pots_wins_sum)
-
+    for pe in players_ev:
+        equity.append(100.0 * pe / players_ev_sum)
+    print 'Games:', games
     return equity
 
 
