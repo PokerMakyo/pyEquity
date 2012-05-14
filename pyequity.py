@@ -96,7 +96,7 @@ def hands_from_range(cards_ranges):
                 cards.append(crange)
         elif crlen == 4:
             if crange[3] == '+':    # cards range like 'A5s+'
-                for rank in range(ranks.index(crange[1]), len(ranks) - 1):
+                for rank in range(ranks.index(crange[1]), ranks.index(crange[0])):
                     cards.append('%s%s%s' % (crange[0], ranks[rank], crange[2]))
             else: # KhQc
                 cards.append(crange)
