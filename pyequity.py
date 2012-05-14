@@ -129,6 +129,7 @@ def compute_equity(pockets, dead=[], board=[], iterations=None):
         lpck = []                       # F
         for x in pck:                   # I
             lpck += x                   # X
+        lpck += filter (lambda c: c != '__', board)
         if len(lpck) != len(set(lpck)): # M
             continue                    # E
 
