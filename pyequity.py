@@ -151,6 +151,8 @@ def compute_equity(pockets, dead=[], board=[], iterations=None):
     print 'Games:', games
     return equity
 
+if __name__ == '__main__':
+    compute_equity(pockets=[['AKo'],['55'],['QQ+','AQs+','KQs','AQo+','KQo']], board=["7h", "3s", "2c", "__", "__"], iterations=100000)
 
 # vim: filetype=python syntax=python expandtab shiftwidth=4 softtabstop=4
 
